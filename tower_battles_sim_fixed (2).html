@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower Battles Simulator</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg2: #242424;
+    --bg3: #2e2e2e;
+    --bg4: #383838;
+    --border: #444;
+    --border2: #555;
+    --text: #f0f0f0;
+    --text2: #aaa;
+    --text3: #666;
+    --blue: #4a9eff;
+    --blue-dim: rgba(74,158,255,0.12);
+    --blue-ring: rgba(74,158,255,0.3);
+    --green: #4caf6e;
+    --red: #e05555;
+    --amber: #e09a30;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
+  header span { font-size: 12px; color: var(--text3); background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 0; height: calc(100vh - 57px); overflow: hidden; }
+
+  .left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .panel-section { border-bottom: 1px solid var(--border); padding: 14px 16px; }
+  .panel-section:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+  canvas { display: block; border-radius: var(--radius); background: #111; cursor: crosshair; width: 100%; }
+  .map-hint { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.5; }
+
+  .right-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .right-top { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 50vh; overflow: hidden; }
+  .rpanel { padding: 14px 16px; overflow-y: auto; }
+  .rpanel:first-child { border-right: 1px solid var(--border); }
+  .results-panel { flex: 1; overflow-y: auto; padding: 14px 16px; }
+
+  .tower-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; }
+  .tower-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tower-num { font-size: 13px; font-weight: 600; color: var(--blue); }
+  .tower-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group label { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .field-group input, .field-group select {
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-size: 13px; padding: 6px 10px; width: 100%;
+    outline: none; transition: border-color 0.15s;
+  }
+  .field-group input:focus, .field-group select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-ring); }
+  .field-group select option { background: var(--bg3); }
+
+  .del-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); cursor: pointer; font-size: 14px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .del-btn:hover { background: #3a1f1f; border-color: var(--red); color: var(--red); }
+
+  .add-btn { width: 100%; background: transparent; border: 1px dashed var(--border2); border-radius: var(--radius); color: var(--text2); cursor: pointer; font-size: 12px; padding: 8px; margin-top: 4px; transition: all 0.15s; }
+  .add-btn:hover { background: var(--bg3); border-color: var(--blue); color: var(--blue); }
+
+  .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sim-row label { font-size: 12px; color: var(--text2); }
+  .sim-row input { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 13px; padding: 6px 10px; width: 72px; outline: none; }
+  .sim-row input:focus { border-color: var(--blue); }
+
+  .run-btn { background: var(--blue); border: none; border-radius: var(--radius); color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 20px; transition: all 0.15s; letter-spacing: 0.02em; }
+  .run-btn:hover { background: #5eaaff; }
+  .run-btn:active { transform: scale(0.97); }
+
+  .hero-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .hero-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .hero-sub { font-size: 12px; color: var(--text2); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 700; color: var(--text); }
+
+  .hist-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .hist-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; }
+  .hist-canvas { width: 100%; display: block; border-radius: 4px; }
+  .ci-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .ci-chip { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--text2); }
+  .ci-chip b { color: var(--text); font-weight: 600; }
+  .progress-bar { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--blue); border-radius: 2px; transition: width 0.1s; }
+
+  .wave-table { width: 100%; border-collapse: collapse; }
+  .wave-table th { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .wave-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 12px; color: var(--text); }
+  .wave-table tr:last-child td { border-bottom: none; }
+  .wave-table tr:hover td { background: var(--bg2); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .badge-green { background: rgba(76,175,110,0.15); color: var(--green); border: 1px solid rgba(76,175,110,0.3); }
+  .badge-red { background: rgba(224,85,85,0.15); color: var(--red); border: 1px solid rgba(224,85,85,0.3); }
+  .badge-amber { background: rgba(224,154,48,0.15); color: var(--amber); border: 1px solid rgba(224,154,48,0.3); }
+
+  .sc-tag { font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.5; }
+  .wave-num { font-weight: 700; font-size: 13px; }
+  .wave-dur { font-size: 10px; color: var(--text3); }
+
+  .empty-state { color: var(--text3); font-size: 13px; padding: 20px 0; text-align: center; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tower Battles Simulator</h1>
+  <span>Mercenary (Lv1) · 4 DPS · 12.5 stud range · Waves 1–31</span>
+</header>
+
+<div class="layout">
+
+  <div class="left-panel">
+    <div class="panel-section">
+      <div class="section-label">Map — click to place tower</div>
+      <canvas id="mapCanvas" width="288" height="420"></canvas>
+      <div class="map-hint">Scroll to zoom · Middle-mouse to pan · Click to place tower. Blue = 12.5 stud range. Green = spawn, red = base.</div>
+      <button id="resetZoom" style="margin-top:6px;width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text2);cursor:pointer;font-size:11px;padding:4px 0">↺ Reset zoom</button>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="right-top">
+      <div class="rpanel">
+        <div class="section-label">Towers</div>
+        <div id="tower-list"><div class="empty-state">Click the map to place towers</div></div>
+        <button class="add-btn" onclick="addTowerManual()">+ Add tower (enter coords)</button>
+      </div>
+      <div class="rpanel">
+        <div class="section-label">Simulation</div>
+        <div class="sim-row">
+          <label>Starting HP</label>
+          <input type="number" id="start-hp" value="100" min="1">
+          <button class="run-btn" onclick="runSim()">&#9654; Simulate</button>
+        </div>
+        <div class="sim-row" style="align-items:center;gap:10px">
+          <label>Trials</label>
+          <input type="number" id="trials-slider" min="1" step="1000" value="2000"
+            style="width:120px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;padding:6px 10px;outline:none;">
+        </div>
+        <div id="hero-area"></div>
+      </div>
+    </div>
+    <div class="results-panel">
+      <div id="results-area"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCALE = 4.6;
+const MARGIN = 22;
+const RAW_SEGMENTS = [
+  {dx:0,dy:16},{dx:16,dy:0},{dx:0,dy:17},{dx:-16,dy:0},
+  {dx:0,dy:22},{dx:-13,dy:0},{dx:0,dy:11},{dx:13,dy:0},{dx:0,dy:22}
+];
+
+function buildPath() {
+  let x=0,y=0; const pts=[{x,y}];
+  RAW_SEGMENTS.forEach(s=>{x+=s.dx;y+=s.dy;pts.push({x,y});});
+  return pts;
+}
+const PATH_PTS = buildPath();
+const minX=Math.min(...PATH_PTS.map(p=>p.x));
+const minY=Math.min(...PATH_PTS.map(p=>p.y));
+
+let zoom=1, panX=0, panY=0;
+function toCanvas(px,py){
+  return{cx:((px-minX)*SCALE+MARGIN)*zoom+panX,cy:((py-minY)*SCALE+MARGIN)*zoom+panY};
+}
+function fromCanvas(cx,cy){
+  return{x:((cx-panX)/zoom-MARGIN)/SCALE+minX,y:((cy-panY)/zoom-MARGIN)/SCALE+minY};
+}
+
+const TOWER_RANGE=12.5, TOWER_DPS=4;
+
+// Exact spawn counts derived from simplified_waves_loc1_only.txt
+const WAVES=[
+  {w:1, dur:7,  scenarios:[{p:1,z:[{t:'normal',n:6}]}]},
+  {w:2, dur:10, scenarios:[{p:1,z:[{t:'normal',n:11}]}]},
+  {w:3, dur:7,  scenarios:[{p:1,z:[{t:'speedy',n:8}]}]},
+  {w:4, dur:15, scenarios:[{p:1,z:[{t:'normal',n:7},{t:'speedy',n:12}]}]},
+  {w:5, dur:9,  scenarios:[{p:1,z:[{t:'slow',n:8}]}]},
+  {w:6, dur:22, scenarios:[{p:1,z:[{t:'normal',n:15},{t:'speedy',n:8}]}]},
+  {w:7, dur:19, scenarios:[{p:1,z:[{t:'speedy',n:8},{t:'normal',n:5},{t:'slow',n:8}]}]},
+  {w:8, dur:17, scenarios:[{p:1,z:[{t:'speedy',n:8},{t:'normal',n:6},{t:'slow',n:5},{t:'boss1',n:1}]}]},
+  {w:9, dur:18, scenarios:[{p:1,z:[{t:'slow',n:20}]}]},
+  {w:10,dur:9,  scenarios:[{p:1,z:[{t:'hidden',n:8}]}]},
+  {w:11,dur:10, scenarios:[{p:1,z:[{t:'slow',n:8},{t:'boss1',n:2}]}]},
+  {w:12,dur:9,  scenarios:[{p:1,z:[{t:'hidden',n:10}]}]},
+  {w:13,dur:11, scenarios:[{p:1,z:[{t:'mystery',n:10}]}]},
+  {w:14,dur:19, scenarios:[{p:1,z:[{t:'slow',n:5},{t:'boss1',n:2},{t:'speedy',n:8},{t:'necro',n:1}]}]},
+  {w:15,dur:20, scenarios:[{p:1,z:[{t:'mystery',n:22}]}]},
+  {w:16,dur:13, scenarios:[{p:1,z:[{t:'slow',n:20}]}]},
+  {w:17,dur:22, scenarios:[{p:1,z:[{t:'mystery',n:1},{t:'speedy',n:2},{t:'hidden',n:2},{t:'normal',n:2},{t:'slow',n:2},{t:'mystery',n:9},{t:'boss1',n:2},{t:'necro',n:1},{t:'boss2',n:1}]}]},
+  {w:18,dur:19, scenarios:[{p:1,z:[{t:'boss1',n:4},{t:'necro',n:1},{t:'mystery',n:5}]}]},
+  {w:19,dur:18, scenarios:[{p:1,z:[{t:'slow',n:4},{t:'lava',n:10},{t:'boss1',n:1}]}]},
+  {w:20,dur:22, scenarios:[{p:1,z:[{t:'mystery',n:15},{t:'hidden',n:4},{t:'boss1',n:2},{t:'lava',n:5}]}]},
+  {w:21,dur:27, scenarios:[{p:1,z:[{t:'hidden',n:6},{t:'lava',n:5},{t:'mystery',n:8},{t:'boss1',n:8},{t:'boss2',n:1}]}]},
+  {w:22,dur:16, scenarios:[{p:1,z:[{t:'hidden',n:5},{t:'boss2',n:1},{t:'hiddenboss',n:1},{t:'lava',n:11}]}]},
+  {w:23,dur:15, scenarios:[{p:1,z:[{t:'toxic',n:8},{t:'boss1',n:2},{t:'boss2',n:1},{t:'mystery',n:4},{t:'hiddenboss',n:2},{t:'necro',n:1}]}]},
+  {w:24,dur:18, scenarios:[{p:1,z:[{t:'boss1',n:4},{t:'hiddenboss',n:1},{t:'lava',n:5},{t:'hiddenboss',n:2},{t:'boss2',n:1}]}]},
+  {w:25,dur:32, scenarios:[{p:1,z:[{t:'lava',n:9},{t:'toxic',n:5},{t:'boss1',n:3},{t:'boss2',n:1},{t:'lightning',n:8},{t:'necro',n:2}]}]},
+  {w:26,dur:10, scenarios:[{p:1,z:[{t:'slime',n:6}]}]},
+  {w:27,dur:26, scenarios:[{p:1,z:[{t:'boss2',n:2},{t:'lightning',n:10},{t:'boss2',n:1},{t:'toxic',n:5},{t:'boss1',n:1},{t:'lightning',n:8}]}]},
+  {w:28,dur:14, scenarios:[{p:1,z:[{t:'slime',n:3},{t:'boss2',n:1},{t:'hiddenboss',n:1},{t:'lightning',n:12},{t:'hiddenboss',n:1},{t:'lightning',n:4},{t:'hiddenboss',n:1},{t:'necro',n:1}]}]},
+  {w:29,dur:45, scenarios:[{p:1,z:[{t:'lightning',n:4},{t:'boss2',n:1},{t:'slime',n:1},{t:'lightning',n:4},{t:'toxic',n:2},{t:'mystery',n:14},{t:'boss2',n:1},{t:'toxic',n:2},{t:'slime',n:4},{t:'mystery2',n:14},{t:'necro',n:3},{t:'hiddenboss',n:2}]}]},
+  {w:30,dur:31, scenarios:[{p:1,z:[{t:'boss2',n:1},{t:'lightning',n:12},{t:'mystery2',n:6},{t:'boss1',n:2},{t:'slime',n:9},{t:'boss1',n:2},{t:'mystery2',n:6}]}]},
+  {w:31,dur:47, scenarios:[{p:1,z:[{t:'normal',n:2},{t:'speedy',n:2},{t:'slow',n:3},{t:'hiddenboss',n:3},{t:'mystery',n:8},{t:'lightning',n:10},{t:'lava',n:2},{t:'boss1',n:3},{t:'necro',n:1},{t:'toxic',n:5},{t:'boss2',n:2},{t:'hiddenboss',n:2},{t:'slime',n:2},{t:'mystery2',n:10},{t:'boss3',n:1}]}]},
+];
+
+const ZTYPES={
+  normal:     {hp:4,   spd:3.2,  label:'Normal'},
+  speedy:     {hp:3,   spd:5.0,  label:'Speedy'},
+  slow:       {hp:16,  spd:1.535,label:'Slow'},
+  boss1:      {hp:180, spd:1.4,  label:'Boss1'},
+  hidden:     {hp:10,  spd:3.2,  label:'Hidden'},
+  mystery:    {hp:10,  spd:3.2,  label:'Mystery'},
+  boss2:      {hp:1600,spd:1.2,  label:'Boss2'},
+  hiddenboss: {hp:800, spd:1.4,  label:'Hidden Boss'},
+  boss3:      {hp:3000,spd:1.0,  label:'Boss3'},
+  slime:      {hp:560, spd:1.2,  label:'Slime'},
+  necro:      {hp:200, spd:1.4,  label:'Necromancer'},
+  lava:       {hp:120, spd:2.0,  label:'Lava'},
+  toxic:      {hp:250, spd:2.0,  label:'Toxic'},
+  mystery2:   {hp:100, spd:3.2,  label:'Mystery2'},
+  lightning:  {hp:50,  spd:6.0,  label:'Lightning'},
+  summon:     {hp:7,   spd:3.2,  label:'Summon'},
+  goo:        {hp:120, spd:5.0,  label:'Goo'},
+};
+
+// Mystery on-death spawn table (equal prob per weight)
+// normal 2/9, speedy 2/9, slow 2/9, hidden 2/9, boss1 1/9
+const MYSTERY_TABLE=[
+  {t:'normal',w:2},{t:'speedy',w:2},{t:'slow',w:2},{t:'hidden',w:2},{t:'boss1',w:1}
+];
+const MYSTERY_TOTAL=MYSTERY_TABLE.reduce((s,e)=>s+e.w,0);
+
+// Weighted random pick from mystery table (only RNG source)
+function mysterySpawnRandom(){
+  let r=Math.random()*MYSTERY_TOTAL;
+  for(const e of MYSTERY_TABLE){ r-=e.w; if(r<=0) return e.t; }
+  return MYSTERY_TABLE[MYSTERY_TABLE.length-1].t;
+}
+// Slime & necro: deterministic averages — no RNG needed
+function slimeGooCount(){ return 3.5; }      // always 3.5 (fractional = one 0.5-hp goo)
+function necroSummonCount(){ return 2.5; }   // always 2.5 per cycle
+
+let towers=[],tid=0;
+
+// Monte Carlo cache
+let _mcCache = { key: null, results: null };
+
+function segCircleOverlap(s,e,cx,cy,r){
+  const dx=e.x-s.x,dy=e.y-s.y,len=Math.sqrt(dx*dx+dy*dy);
+  if(len===0)return 0;
+  const ux=dx/len,uy=dy/len,fx=s.x-cx,fy=s.y-cy;
+  const b=2*(fx*ux+fy*uy),c=fx*fx+fy*fy-r*r,disc=b*b-4*c;
+  if(disc<0)return 0;
+  const sq=Math.sqrt(disc),t1=(-b-sq)/2,t2=(-b+sq)/2;
+  const lo=Math.max(0,t1),hi=Math.min(len,t2);
+  return hi>lo?hi-lo:0;
+}
+
+// Precompute cumulative path distances for fast position lookup
+const PATH_DISTS=(()=>{
+  const d=[0];
+  for(let i=1;i<PATH_PTS.length;i++){
+    const dx=PATH_PTS[i].x-PATH_PTS[i-1].x,dy=PATH_PTS[i].y-PATH_PTS[i-1].y;
+    d.push(d[i-1]+Math.sqrt(dx*dx+dy*dy));
+  }
+  return d;
+})();
+const TOTAL_PATH=PATH_DISTS[PATH_DISTS.length-1];
+
+// Get world position of a zombie that has traveled `dist` studs along the path
+function posAlongPath(dist){
+  if(dist<=0)return{...PATH_PTS[0]};
+  if(dist>=TOTAL_PATH)return{...PATH_PTS[PATH_PTS.length-1]};
+  for(let i=1;i<PATH_DISTS.length;i++){
+    if(PATH_DISTS[i]>=dist){
+      const seg=PATH_DISTS[i]-PATH_DISTS[i-1];
+      const t=(dist-PATH_DISTS[i-1])/seg;
+      return{x:PATH_PTS[i-1].x+t*(PATH_PTS[i].x-PATH_PTS[i-1].x),
+             y:PATH_PTS[i-1].y+t*(PATH_PTS[i].y-PATH_PTS[i-1].y)};
+    }
+  }
+  return{...PATH_PTS[PATH_PTS.length-1]};
+}
+
+// Check if a zombie at path distance `dist` is within tower range
+function inRange(tx,ty,dist){
+  const p=posAlongPath(dist);
+  const dx=p.x-tx,dy=p.y-ty;
+  return dx*dx+dy*dy<=TOWER_RANGE*TOWER_RANGE;
+}
+
+// ---------------------------------------------------------------------------
+// Analytic simulation — no timestep jitter.
+// For each zombie we compute exactly how much damage it takes from each tower
+// by integrating overlap time = (overlap length along path) / zombie speed.
+// Mystery on-death spawns still use Math.random(). Slime/necro are avg.
+// ---------------------------------------------------------------------------
+function makeZombie(type, dist, spawnTime, waveIdx, hpMult){
+  hpMult = hpMult === undefined ? 1 : hpMult;
+  return { waveIdx, type, hp: ZTYPES[type].hp * hpMult, spd: ZTYPES[type].spd,
+           spawnTime, dist, exited: false, reached: false, reachTime: null,
+           nextSummonIn: type==='necro' ? 6 : null };
+}
+
+function segCircleOverlap(s, e, cx, cy, r){
+  const dx=e.x-s.x, dy=e.y-s.y, len=Math.sqrt(dx*dx+dy*dy);
+  if(len===0) return 0;
+  const ux=dx/len, uy=dy/len, fx=s.x-cx, fy=s.y-cy;
+  const b=2*(fx*ux+fy*uy), c=fx*fx+fy*fy-r*r, disc=b*b-4*c;
+  if(disc<0) return 0;
+  const sq=Math.sqrt(disc), t1=(-b-sq)/2, t2=(-b+sq)/2;
+  const lo=Math.max(0,t1), hi=Math.min(len,t2);
+  return hi>lo ? hi-lo : 0;
+}
+
+// Total path length a zombie spends inside a tower's range circle
+function timeInRange(tx, ty, spd){
+  let overlap = 0;
+  for(let i=1; i<PATH_PTS.length; i++){
+    overlap += segCircleOverlap(PATH_PTS[i-1], PATH_PTS[i], tx, ty, TOWER_RANGE);
+  }
+  return overlap / spd; // time = distance / speed
+}
+
+// When does a zombie (spawned at spawnTime, starting at dist=0) enter/exit tower range?
+// Returns {enterDist, exitDist} along the path, or null if never in range.
+function rangeWindow(tx, ty){
+  // Walk segments, accumulate entry/exit distances
+  let d = 0;
+  let enterDist = null, exitDist = null;
+  for(let i=1; i<PATH_PTS.length; i++){
+    const s=PATH_PTS[i-1], e=PATH_PTS[i];
+    const dx=e.x-s.x, dy=e.y-s.y, len=Math.sqrt(dx*dx+dy*dy);
+    if(len===0){ d+=len; continue; }
+    const ux=dx/len, uy=dy/len, fx=s.x-tx, fy=s.y-ty;
+    const b=2*(fx*ux+fy*uy), c=fx*fx+fy*fy-TOWER_RANGE*TOWER_RANGE, disc=b*b-4*c;
+    if(disc>=0){
+      const sq=Math.sqrt(disc);
+      const t1=(-b-sq)/2, t2=(-b+sq)/2;
+      const lo=Math.max(0,t1), hi=Math.min(len,t2);
+      if(hi>lo){
+        if(enterDist===null) enterDist=d+lo;
+        exitDist=d+hi;
+      }
+    }
+    d+=len;
+  }
+  return enterDist===null ? null : {enterDist, exitDist};
+}
+
+function simAllWaves(towerList){
+  // Precompute tower active times and range windows
+  const towerActiveTimes = towerList.map(t => WAVES.slice(0,t.wave-1).reduce((s,w)=>s+w.dur,0));
+  const towerWindows = towerList.map(t => rangeWindow(t.x, t.y));
+
+  // Build all zombies with spawn times
+  const allZombies = [];
+  let waveStartTime = 0;
+  WAVES.forEach(wave => {
+    const sc = wave.scenarios[0];
+    const flatTypes = [];
+    sc.z.forEach(g => { for(let i=0;i<g.n;i++) flatTypes.push(g.t); });
+    const N = flatTypes.length;
+    const interval = N>1 ? wave.dur/N : 0;
+    flatTypes.forEach((type,i) => {
+      allZombies.push(makeZombie(type, 0, waveStartTime + i*interval, wave.w-1));
+    });
+    waveStartTime += wave.dur;
+  });
+
+  // Process zombies analytically — no time loop needed
+  // We need to handle on-death spawns, so we process in spawn-time order
+  // and push new zombies as we go.
+  let idx = 0;
+  while(idx < allZombies.length){
+    const z = allZombies[idx++];
+    const zSpd = z.spd;
+    // Time zombie reaches each path distance d: t = z.spawnTime + d/zSpd
+    // Tower shoots it while: zombie is in range AND tower is active AND zombie is alive
+    // For each tower, compute damage dealt before zombie dies or exits range.
+    // We process towers in the order the zombie passes through them (by enterDist).
+    const applicableTowers = [];
+    for(let ti=0; ti<towerList.length; ti++){
+      const win = towerWindows[ti];
+      if(!win) continue;
+      // zombie enters range at time: z.spawnTime + win.enterDist/zSpd
+      const enterTime = z.spawnTime + win.enterDist / zSpd;
+      const exitTime  = z.spawnTime + win.exitDist  / zSpd;
+      if(exitTime <= towerActiveTimes[ti]) continue; // tower not active yet when zombie passes
+      const effectiveEnter = Math.max(enterTime, towerActiveTimes[ti]);
+      if(effectiveEnter >= exitTime) continue;
+      applicableTowers.push({ ti, effectiveEnter, exitTime, enterDist: win.enterDist });
+    }
+    // Sort by enterDist so we handle in path order
+    applicableTowers.sort((a,b) => a.enterDist - b.enterDist);
+
+    // Apply damage — zombie HP drains as towers shoot; once dead, stop
+    let hp = z.hp;
+    let dieTime = null, dieDist = null;
+    for(const tw of applicableTowers){
+      if(hp <= 0) break;
+      const shootDuration = tw.exitTime - tw.effectiveEnter;
+      const dmg = TOWER_DPS * shootDuration;
+      if(dmg >= hp){
+        // zombie dies inside this tower's range
+        const timeToKill = hp / TOWER_DPS;
+        dieTime = tw.effectiveEnter + timeToKill;
+        dieDist = (dieTime - z.spawnTime) * zSpd;
+        hp = 0;
+      } else {
+        hp -= dmg;
+      }
+    }
+
+    if(hp <= 0){
+      z.exited = true;
+      z.hp = 0;
+      // On-death spawns
+      if(z.type==='mystery'||z.type==='mystery2'){
+        const spawnType = mysterySpawnRandom();
+        allZombies.push(makeZombie(spawnType, dieDist, dieTime, z.waveIdx));
+      }
+      if(z.type==='slime'){
+        // avg 3.5 goos
+        allZombies.push(makeZombie('goo', dieDist, dieTime, z.waveIdx, 1));
+        allZombies.push(makeZombie('goo', dieDist, dieTime, z.waveIdx, 1));
+        allZombies.push(makeZombie('goo', dieDist, dieTime, z.waveIdx, 1));
+        allZombies.push(makeZombie('goo', dieDist, dieTime, z.waveIdx, 0.5));
+      }
+      if(z.type==='necro'){
+        // avg 2.5 summons every 6s for however long necro is alive
+        // necro dies at dieTime, started at spawnTime; summon every 6s
+        for(let st=z.spawnTime+6; st<dieTime; st+=6){
+          const summonDist = (st - z.spawnTime) * zSpd;
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 1));
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 1));
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 0.5));
+        }
+      }
+    } else {
+      // Zombie leaked through — reaches base
+      z.reached = true;
+      z.hp = hp;
+      z.reachTime = z.spawnTime + TOTAL_PATH / zSpd;
+      // Necro that reaches base: summons for full walk time
+      if(z.type==='necro'){
+        const walkTime = TOTAL_PATH / zSpd;
+        for(let st=z.spawnTime+6; st<z.spawnTime+walkTime; st+=6){
+          const summonDist = (st - z.spawnTime) * zSpd;
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 1));
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 1));
+          allZombies.push(makeZombie('summon', summonDist, st, z.waveIdx, 0.5));
+        }
+      }
+    }
+  }
+
+  const dmgByWave = new Array(WAVES.length).fill(0);
+  allZombies.forEach(z => { if(z.reached) dmgByWave[z.waveIdx] += z.hp; });
+  const reached = allZombies.filter(z=>z.reached).sort((a,b)=>a.reachTime-b.reachTime);
+  return { dmgByWave, reached };
+}
+
+// Run Monte Carlo: N trials, return per-wave death counts and death times
+function runMonteCarlo(towerList, startHp, N){
+  const waveStartTimes = [];
+  let acc = 0;
+  WAVES.forEach(w => { waveStartTimes.push(acc); acc += w.dur; });
+
+  const deathByWave = new Array(WAVES.length).fill(0); // how many trials died on each wave
+  let survivedCount = 0;
+  const deathTimes = []; // global death time for each trial that died
+
+  for(let trial=0; trial<N; trial++){
+    const { dmgByWave, reached } = simAllWaves(towerList);
+    // Walk HP forward wave-by-wave
+    let hp = startHp, diedWave = null;
+    for(let wi=0; wi<WAVES.length; wi++){
+      hp -= dmgByWave[wi];
+      if(hp <= 0){
+        diedWave = wi;
+        break;
+      }
+    }
+    if(diedWave === null){
+      survivedCount++;
+    } else {
+      deathByWave[diedWave]++;
+      // Find exact death time from this trial's reached list
+      let timeHp = startHp;
+      for(const z of reached){
+        timeHp -= z.hp;
+        if(timeHp <= 0){ deathTimes.push(z.reachTime); break; }
+      }
+    }
+  }
+
+  return { deathByWave, survivedCount, deathTimes, waveStartTimes, N };
+}
+
+// Invalidate cache when towers change
+function invalidateCache(){ _mcCache = { key: null, results: null }; }
+
+// --- Worker code as a string (Blob URL trick — keeps everything in one HTML file) ---
+const WORKER_CODE = `
+const WAVES=${JSON.stringify(WAVES)};
+const ZTYPES=${JSON.stringify(ZTYPES)};
+const MYSTERY_TABLE=${JSON.stringify(MYSTERY_TABLE)};
+const MYSTERY_TOTAL=${MYSTERY_TOTAL};
+const TOWER_RANGE=${TOWER_RANGE};
+const TOWER_DPS=${TOWER_DPS};
+const RAW_SEGMENTS=${JSON.stringify(RAW_SEGMENTS)};
+
+function buildPath(){let x=0,y=0;const pts=[{x,y}];RAW_SEGMENTS.forEach(s=>{x+=s.dx;y+=s.dy;pts.push({x,y});});return pts;}
+const PATH_PTS=buildPath();
+const PATH_DISTS=(()=>{const d=[0];for(let i=1;i<PATH_PTS.length;i++){const dx=PATH_PTS[i].x-PATH_PTS[i-1].x,dy=PATH_PTS[i].y-PATH_PTS[i-1].y;d.push(d[i-1]+Math.sqrt(dx*dx+dy*dy));}return d;})();
+const TOTAL_PATH=PATH_DISTS[PATH_DISTS.length-1];
+
+function posAlongPath(dist){if(dist<=0)return{...PATH_PTS[0]};if(dist>=TOTAL_PATH)return{...PATH_PTS[PATH_PTS.length-1]};for(let i=1;i<PATH_DISTS.length;i++){if(PATH_DISTS[i]>=dist){const seg=PATH_DISTS[i]-PATH_DISTS[i-1],t=(dist-PATH_DISTS[i-1])/seg;return{x:PATH_PTS[i-1].x+t*(PATH_PTS[i].x-PATH_PTS[i-1].x),y:PATH_PTS[i-1].y+t*(PATH_PTS[i].y-PATH_PTS[i-1].y)};}}return{...PATH_PTS[PATH_PTS.length-1]};}
+function inRange(tx,ty,dist){const p=posAlongPath(dist);const dx=p.x-tx,dy=p.y-ty;return dx*dx+dy*dy<=TOWER_RANGE*TOWER_RANGE;}
+function mysterySpawnRandom(){let r=Math.random()*MYSTERY_TOTAL;for(const e of MYSTERY_TABLE){r-=e.w;if(r<=0)return e.t;}return MYSTERY_TABLE[MYSTERY_TABLE.length-1].t;}
+function makeZombie(type,dist,spawnTime,waveIdx,hpMult){hpMult=hpMult===undefined?1:hpMult;return{waveIdx,type,hp:ZTYPES[type].hp*hpMult,spd:ZTYPES[type].spd,spawnTime,dist,exited:false,reached:false,reachTime:null,nextSummonIn:type==='necro'?6:null};}
+
+function segCircleOverlap(s,e,cx,cy,r){const dx=e.x-s.x,dy=e.y-s.y,len=Math.sqrt(dx*dx+dy*dy);if(len===0)return 0;const ux=dx/len,uy=dy/len,fx=s.x-cx,fy=s.y-cy;const b=2*(fx*ux+fy*uy),c=fx*fx+fy*fy-r*r,disc=b*b-4*c;if(disc<0)return 0;const sq=Math.sqrt(disc),t1=(-b-sq)/2,t2=(-b+sq)/2;const lo=Math.max(0,t1),hi=Math.min(len,t2);return hi>lo?hi-lo:0;}
+function rangeWindow(tx,ty){let d=0,enterDist=null,exitDist=null;for(let i=1;i<PATH_PTS.length;i++){const s=PATH_PTS[i-1],e=PATH_PTS[i],dx=e.x-s.x,dy=e.y-s.y,len=Math.sqrt(dx*dx+dy*dy);if(len===0){d+=len;continue;}const ux=dx/len,uy=dy/len,fx=s.x-tx,fy=s.y-ty;const b=2*(fx*ux+fy*uy),c=fx*fx+fy*fy-TOWER_RANGE*TOWER_RANGE,disc=b*b-4*c;if(disc>=0){const sq=Math.sqrt(disc),t1=(-b-sq)/2,t2=(-b+sq)/2,lo=Math.max(0,t1),hi=Math.min(len,t2);if(hi>lo){if(enterDist===null)enterDist=d+lo;exitDist=d+hi;}}d+=len;}return enterDist===null?null:{enterDist,exitDist};}
+function simAllWaves(towerList){
+  const towerActiveTimes=towerList.map(t=>WAVES.slice(0,t.wave-1).reduce((s,w)=>s+w.dur,0));
+  const towerWindows=towerList.map(t=>rangeWindow(t.x,t.y));
+  const allZombies=[];
+  let waveStartTime=0;
+  WAVES.forEach(wave=>{
+    const sc=wave.scenarios[0];const flatTypes=[];
+    sc.z.forEach(g=>{for(let i=0;i<g.n;i++)flatTypes.push(g.t);});
+    const N=flatTypes.length;const interval=N>1?wave.dur/N:0;
+    flatTypes.forEach((type,i)=>{allZombies.push(makeZombie(type,0,waveStartTime+i*interval,wave.w-1));});
+    waveStartTime+=wave.dur;
+  });
+  let idx=0;
+  while(idx<allZombies.length){
+    const z=allZombies[idx++];
+    const zSpd=z.spd;
+    const applicableTowers=[];
+    for(let ti=0;ti<towerList.length;ti++){
+      const win=towerWindows[ti];if(!win)continue;
+      const enterTime=z.spawnTime+win.enterDist/zSpd;
+      const exitTime=z.spawnTime+win.exitDist/zSpd;
+      if(exitTime<=towerActiveTimes[ti])continue;
+      const effectiveEnter=Math.max(enterTime,towerActiveTimes[ti]);
+      if(effectiveEnter>=exitTime)continue;
+      applicableTowers.push({ti,effectiveEnter,exitTime,enterDist:win.enterDist});
+    }
+    applicableTowers.sort((a,b)=>a.enterDist-b.enterDist);
+    let hp=z.hp,dieTime=null,dieDist=null;
+    for(const tw of applicableTowers){
+      if(hp<=0)break;
+      const shootDuration=tw.exitTime-tw.effectiveEnter;
+      const dmg=TOWER_DPS*shootDuration;
+      if(dmg>=hp){const timeToKill=hp/TOWER_DPS;dieTime=tw.effectiveEnter+timeToKill;dieDist=(dieTime-z.spawnTime)*zSpd;hp=0;}
+      else{hp-=dmg;}
+    }
+    if(hp<=0){
+      z.exited=true;z.hp=0;
+      if(z.type==='mystery'||z.type==='mystery2'){allZombies.push(makeZombie(mysterySpawnRandom(),dieDist,dieTime,z.waveIdx));}
+      if(z.type==='slime'){allZombies.push(makeZombie('goo',dieDist,dieTime,z.waveIdx,1));allZombies.push(makeZombie('goo',dieDist,dieTime,z.waveIdx,1));allZombies.push(makeZombie('goo',dieDist,dieTime,z.waveIdx,1));allZombies.push(makeZombie('goo',dieDist,dieTime,z.waveIdx,0.5));}
+      if(z.type==='necro'){for(let st=z.spawnTime+6;st<dieTime;st+=6){const sd=(st-z.spawnTime)*zSpd;allZombies.push(makeZombie('summon',sd,st,z.waveIdx,1));allZombies.push(makeZombie('summon',sd,st,z.waveIdx,1));allZombies.push(makeZombie('summon',sd,st,z.waveIdx,0.5));}}
+    } else {
+      z.reached=true;z.hp=hp;z.reachTime=z.spawnTime+TOTAL_PATH/zSpd;
+      if(z.type==='necro'){const walkTime=TOTAL_PATH/zSpd;for(let st=z.spawnTime+6;st<z.spawnTime+walkTime;st+=6){const sd=(st-z.spawnTime)*zSpd;allZombies.push(makeZombie('summon',sd,st,z.waveIdx,1));allZombies.push(makeZombie('summon',sd,st,z.waveIdx,1));allZombies.push(makeZombie('summon',sd,st,z.waveIdx,0.5));}}
+    }
+  }
+  const dmgByWave=new Array(WAVES.length).fill(0);
+  allZombies.forEach(z=>{if(z.reached)dmgByWave[z.waveIdx]+=z.hp;});
+  const reached=allZombies.filter(z=>z.reached).sort((a,b)=>a.reachTime-b.reachTime);
+  return{dmgByWave,reached};
+}
+
+self.onmessage=function(e){
+  const{towerList,startHp,trials}=e.data;
+  const deathByWave=new Array(WAVES.length).fill(0);
+  let survivedCount=0;
+  const deathTimes=[];
+  const REPORT_EVERY=25;
+  for(let trial=0;trial<trials;trial++){
+    const{dmgByWave,reached}=simAllWaves(towerList);
+    let hp=startHp,diedWave=null;
+    for(let wi=0;wi<WAVES.length;wi++){hp-=dmgByWave[wi];if(hp<=0){diedWave=wi;break;}}
+    if(diedWave===null){survivedCount++;}
+    else{
+      deathByWave[diedWave]++;
+      let timeHp=startHp;
+      for(const z of reached){timeHp-=z.hp;if(timeHp<=0){deathTimes.push(z.reachTime);break;}}
+    }
+    if((trial+1)%REPORT_EVERY===0){
+      self.postMessage({progress:trial+1,total:trials});
+    }
+  }
+  self.postMessage({deathByWave,survivedCount,deathTimes,done:true});
+};
+`;
+
+function runSim(){
+  const startHp = parseFloat(document.getElementById('start-hp').value) || 100;
+
+  if(!towers.length){
+    document.getElementById('hero-area').innerHTML='<div class="empty-state">Place at least one tower first.</div>';
+    document.getElementById('results-area').innerHTML='';
+    return;
+  }
+
+  const TOTAL = parseInt(document.getElementById('trials-slider').value) || 2000;
+  const NUM_WORKERS = Math.min(navigator.hardwareConcurrency || 4, 16);
+  const trialsPerWorker = Math.ceil(TOTAL / NUM_WORKERS);
+
+  document.getElementById('hero-area').innerHTML=`
+    <div class="hist-wrap">
+      <div class="hist-title">Running Monte Carlo… <span id="mc-prog-label">0 / ${TOTAL} — ${NUM_WORKERS} workers</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="mc-prog-bar" style="width:0%"></div></div>
+    </div>`;
+  document.getElementById('results-area').innerHTML='';
+
+  const waveStartTimes = [];
+  let acc2 = 0;
+  WAVES.forEach(w => { waveStartTimes.push(acc2); acc2 += w.dur; });
+
+  // Aggregate accumulators
+  const deathByWave = new Array(WAVES.length).fill(0);
+  let survivedCount = 0;
+  const deathTimes = [];
+  let workersFinished = 0;
+  let totalTrialsDone = 0;
+  const workerProgress = new Array(NUM_WORKERS).fill(0);
+
+  // Create Blob URL for the worker
+  const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
+  const workerUrl = URL.createObjectURL(blob);
+
+  for(let w = 0; w < NUM_WORKERS; w++){
+    const worker = new Worker(workerUrl);
+    const myTrials = (w === NUM_WORKERS - 1)
+      ? TOTAL - trialsPerWorker * (NUM_WORKERS - 1)  // last worker gets remainder
+      : trialsPerWorker;
+
+    worker.onmessage = function(e){
+      const r = e.data;
+
+      // Progress-only ping from mid-run
+      if(!r.done){
+        totalTrialsDone += r.progress - (workerProgress[w] || 0);
+        workerProgress[w] = r.progress;
+        const pct = Math.round(totalTrialsDone / TOTAL * 100);
+        const bar = document.getElementById('mc-prog-bar');
+        const lbl = document.getElementById('mc-prog-label');
+        if(bar) bar.style.width = pct + '%';
+        if(lbl) lbl.textContent = `${totalTrialsDone.toLocaleString()} / ${TOTAL.toLocaleString()} — ${NUM_WORKERS} workers`;
+        return;
+      }
+
+      // Final result
+      const remaining = myTrials - (workerProgress[w] || 0);
+      totalTrialsDone += remaining;
+      r.deathByWave.forEach((n, i) => deathByWave[i] += n);
+      survivedCount += r.survivedCount;
+      deathTimes.push(...r.deathTimes);
+      workersFinished++;
+
+      const pct = Math.round(totalTrialsDone / TOTAL * 100);
+      const bar = document.getElementById('mc-prog-bar');
+      const lbl = document.getElementById('mc-prog-label');
+      if(bar) bar.style.width = pct + '%';
+      if(lbl) lbl.textContent = `${totalTrialsDone.toLocaleString()} / ${TOTAL.toLocaleString()} — ${NUM_WORKERS} workers`;
+
+      worker.terminate();
+      if(workersFinished === NUM_WORKERS){
+        URL.revokeObjectURL(workerUrl);
+        renderMCResults({ deathByWave, survivedCount, deathTimes, waveStartTimes, N: TOTAL }, startHp);
+      }
+    };
+
+    worker.onerror = function(err){
+      console.error('Worker error:', err);
+      worker.terminate();
+    };
+
+    worker.postMessage({ towerList: towers, startHp, trials: myTrials });
+  }
+}
+
+function renderMCResults(mc, startHp){
+  const { deathByWave, survivedCount, deathTimes, waveStartTimes, N } = mc;
+  const totalDied = N - survivedCount;
+  const survRate = (survivedCount / N * 100).toFixed(1);
+
+  // Percentiles of death time
+  const sorted = [...deathTimes].sort((a,b)=>a-b);
+  function pctile(p){ if(!sorted.length) return null; return sorted[Math.floor(p/100*(sorted.length-1))]; }
+  const p5  = pctile(5),  p50 = pctile(50), p95 = pctile(95);
+
+  // Wave for a given global time
+  function waveOfTime(t){
+    for(let i=WAVES.length-1; i>=0; i--){
+      if(t >= waveStartTimes[i]) return WAVES[i].w;
+    }
+    return WAVES[0].w;
+  }
+
+  // ---- Hero area: summary cards ----
+  const survColor = survivedCount/N >= 0.5 ? 'var(--green)' : survivedCount/N >= 0.1 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('hero-area').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="hero-card" style="border-color:${survColor}33;margin-bottom:0">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Survival rate</div>
+        <div class="hero-title" style="color:${survColor};font-size:22px">${survRate}%</div>
+        <div class="hero-sub">${survivedCount.toLocaleString()} / ${N.toLocaleString()} trials survived all 31 waves</div>
+      </div>
+      <div class="hero-card" style="border-color:var(--red)33;margin-bottom:0">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Death time range</div>
+        <div class="hero-title" style="color:var(--text);font-size:15px">${p50!==null?`W${waveOfTime(p50)} · T+${p50.toFixed(0)}s`:'Never dies'}</div>
+        <div class="hero-sub">${p5!==null?`P5: T+${p5.toFixed(0)}s (W${waveOfTime(p5)}) · P95: T+${p95.toFixed(0)}s (W${waveOfTime(p95)})`:'No deaths recorded'}</div>
+      </div>
+    </div>`;
+
+  // ---- Histogram of death times ----
+  const BINS = 60;
+  let minT = sorted[0] || 0, maxT = sorted[sorted.length-1] || 1;
+  if(minT === maxT){ minT -= 1; maxT += 1; }
+  const binW = (maxT - minT) / BINS;
+  const bins = new Array(BINS).fill(0);
+  for(const t of sorted){ const bi = Math.min(BINS-1, Math.floor((t-minT)/binW)); bins[bi]++; }
+  const maxBin = Math.max(1, ...bins);
+
+  // Wave boundary lines
+  const waveBounds = waveStartTimes.map(t => ({t, w: WAVES[waveStartTimes.indexOf(t)]?.w}));
+
+  const CW = 640, CH = 140, PAD_L = 36, PAD_R = 10, PAD_T = 10, PAD_B = 28;
+  const plotW = CW - PAD_L - PAD_R;
+  const plotH = CH - PAD_T - PAD_B;
+
+  function tx(t){ return PAD_L + (t - minT)/(maxT - minT) * plotW; }
+  function ty(n){ return PAD_T + plotH - (n/maxBin)*plotH; }
+
+  // Build SVG histogram
+  const barPaths = bins.map((cnt, i) => {
+    const x1 = PAD_L + i/BINS*plotW, x2 = PAD_L + (i+1)/BINS*plotW;
+    const y1 = ty(cnt), y2 = PAD_T + plotH;
+    const heat = cnt/maxBin;
+    const r = Math.round(80 + heat * 175), g = Math.round(85 - heat*60), b = Math.round(255 - heat*200);
+    return `<rect x="${x1.toFixed(1)}" y="${y1.toFixed(1)}" width="${(x2-x1+0.5).toFixed(1)}" height="${(y2-y1).toFixed(1)}" fill="rgb(${r},${g},${b})" opacity="0.85"/>`;
+  }).join('');
+
+  // Wave boundary lines (every 5 waves to avoid clutter)
+  const waveLines = WAVES.filter(w => w.w % 5 === 0).map(w => {
+    const wt = waveStartTimes[w.w-1];
+    if(wt < minT || wt > maxT) return '';
+    const x = tx(wt);
+    return `<line x1="${x.toFixed(1)}" y1="${PAD_T}" x2="${x.toFixed(1)}" y2="${(PAD_T+plotH).toFixed(1)}" stroke="#555" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="${x.toFixed(1)}" y="${(PAD_T+plotH+10).toFixed(1)}" fill="#666" font-size="9" text-anchor="middle">W${w.w}</text>`;
+  }).join('');
+
+  // P5/P50/P95 lines
+  function ciLine(t, color, label){
+    if(t === null || t < minT || t > maxT) return '';
+    const x = tx(t);
+    return `<line x1="${x.toFixed(1)}" y1="${PAD_T}" x2="${x.toFixed(1)}" y2="${(PAD_T+plotH).toFixed(1)}" stroke="${color}" stroke-width="1.5"/>
+            <text x="${x.toFixed(1)}" y="${(PAD_T+8).toFixed(1)}" fill="${color}" font-size="9" text-anchor="middle">${label}</text>`;
+  }
+
+  // Y axis ticks
+  const yTick = `<line x1="${PAD_L}" y1="${PAD_T}" x2="${PAD_L}" y2="${(PAD_T+plotH).toFixed(1)}" stroke="#444" stroke-width="1"/>
+    <text x="${(PAD_L-4).toFixed(1)}" y="${(PAD_T+plotH).toFixed(1)}" fill="#555" font-size="9" text-anchor="end">0</text>
+    <text x="${(PAD_L-4).toFixed(1)}" y="${(PAD_T+4).toFixed(1)}" fill="#555" font-size="9" text-anchor="end">${maxBin}</text>
+    <line x1="${PAD_L}" y1="${(PAD_T+plotH).toFixed(1)}" x2="${(PAD_L+plotW).toFixed(1)}" y2="${(PAD_T+plotH).toFixed(1)}" stroke="#444" stroke-width="1"/>`;
+
+  const histSVG = `<svg viewBox="0 0 ${CW} ${CH}" xmlns="http://www.w3.org/2000/svg" class="hist-canvas">
+    ${yTick}
+    ${barPaths}
+    ${waveLines}
+    ${ciLine(p5,'#e09a30','P5')}
+    ${ciLine(p50,'#4a9eff','P50')}
+    ${ciLine(p95,'#e05555','P95')}
+  </svg>`;
+
+  // ---- Wave table with Monte Carlo death probabilities ----
+  let cumulativeDead = 0;
+  const dataRows = WAVES.map((wave, wi) => {
+    const diedHere = deathByWave[wi];
+    const alreadyDead = cumulativeDead;
+    cumulativeDead += diedHere;
+    const trialsAlive = N - alreadyDead; // trials that could possibly reach this wave
+    const deathProb = diedHere / N;
+    const pct = (deathProb * 100).toFixed(1);
+    let badgeClass, badgeText;
+    if(alreadyDead >= N){ badgeClass='badge-red'; badgeText='already dead'; }
+    else if(diedHere === 0){ badgeClass='badge-green'; badgeText='safe (0%)'; }
+    else if(deathProb >= 0.5){ badgeClass='badge-red'; badgeText=`${pct}% die here`; }
+    else { badgeClass='badge-amber'; badgeText=`${pct}% die here`; }
+
+    // Probability bar
+    const barW = Math.round(deathProb * 80);
+    const barColor = deathProb >= 0.5 ? '#e05555' : deathProb > 0 ? '#e09a30' : '#4caf6e';
+    const barHTML = deathProb > 0
+      ? `<div style="margin-top:3px;height:4px;width:${barW}px;background:${barColor};border-radius:2px"></div>`
+      : '';
+
+    const scDesc = `<div class="sc-tag">${wave.scenarios[0].z.map(g=>`${g.n} ${ZTYPES[g.t].label}`).join(', ')}</div>`;
+    return `<tr>
+      <td><span class="wave-num">W${wave.w}</span><br><span class="wave-dur">${wave.dur}s</span></td>
+      <td>${scDesc}</td>
+      <td style="color:var(--text2)">${deathByWave[wi].toLocaleString()} / ${N.toLocaleString()}</td>
+      <td><span class="badge ${badgeClass}">${badgeText}</span>${barHTML}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('results-area').innerHTML=`
+    <div class="hist-wrap">
+      <div class="hist-title">
+        <span>Death time distribution (${totalDied.toLocaleString()} deaths across ${N.toLocaleString()} trials)</span>
+        <span style="font-size:10px;color:var(--text3)">vertical lines: P5 / P50 / P95</span>
+      </div>
+      ${histSVG}
+      <div class="ci-row">
+        <div class="ci-chip">P5 <b>${p5!==null?`T+${p5.toFixed(0)}s (W${waveOfTime(p5)})`:'—'}</b></div>
+        <div class="ci-chip">Median <b>${p50!==null?`T+${p50.toFixed(0)}s (W${waveOfTime(p50)})`:'—'}</b></div>
+        <div class="ci-chip">P95 <b>${p95!==null?`T+${p95.toFixed(0)}s (W${waveOfTime(p95)})`:'—'}</b></div>
+        <div class="ci-chip">Survived <b>${survRate}%</b></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);padding:4px 2px 8px">${N.toLocaleString()} Monte Carlo trials · mystery spawns are random each trial · slime (3.5 avg goos) and necro (2.5 avg summons/cycle) are deterministic averages</div>
+    <table class="wave-table">
+      <thead><tr><th>Wave</th><th>Spawns</th><th>Deaths (trials)</th><th>Death probability</th></tr></thead>
+      <tbody>${dataRows}</tbody>
+    </table>`;
+}
+function renderMap(){
+  const canvas=document.getElementById('mapCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=12; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  PATH_PTS.forEach((p,i)=>{const{cx,cy}=toCanvas(p.x,p.y);i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);});
+  ctx.stroke();
+
+  ctx.strokeStyle='#555'; ctx.lineWidth=2; ctx.setLineDash([5,5]);
+  ctx.beginPath();
+  PATH_PTS.forEach((p,i)=>{const{cx,cy}=toCanvas(p.x,p.y);i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);});
+  ctx.stroke(); ctx.setLineDash([]);
+
+  const s=toCanvas(PATH_PTS[0].x,PATH_PTS[0].y);
+  const e=toCanvas(PATH_PTS[PATH_PTS.length-1].x,PATH_PTS[PATH_PTS.length-1].y);
+  ctx.fillStyle='#4caf6e'; ctx.beginPath(); ctx.arc(s.cx,s.cy,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e05555'; ctx.beginPath(); ctx.arc(e.cx,e.cy,5,0,Math.PI*2); ctx.fill();
+
+  towers.forEach(t=>{
+    const{cx,cy}=toCanvas(t.x,t.y);
+    const rc=TOWER_RANGE*SCALE*zoom;
+    ctx.strokeStyle='rgba(74,158,255,0.35)'; ctx.fillStyle='rgba(74,158,255,0.08)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#4a9eff';
+    ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('W'+t.wave,cx,cy-9);
+  });
+}
+
+function renderTowerList(){
+  const el=document.getElementById('tower-list');
+  if(!towers.length){el.innerHTML='<div class="empty-state">Click the map to place towers</div>';return;}
+  el.innerHTML=towers.map(t=>`
+    <div class="tower-card">
+      <div class="tower-card-header">
+        <span class="tower-num">#${t.id} Mercenary</span>
+        <button class="del-btn" onclick="removeTower(${t.id})" aria-label="Remove tower">×</button>
+      </div>
+      <div class="tower-fields">
+        <div class="field-group"><label>X (studs)</label><input type="number" step="0.5" value="${t.x.toFixed(1)}" oninput="updateTower(${t.id},'x',this.value)"></div>
+        <div class="field-group"><label>Y (studs)</label><input type="number" step="0.5" value="${t.y.toFixed(1)}" oninput="updateTower(${t.id},'y',this.value)"></div>
+        <div class="field-group" style="grid-column:span 2"><label>Place on wave</label>
+          <select onchange="updateTower(${t.id},'wave',this.value)">
+            ${Array.from({length:31},(_,i)=>i+1).map(w=>`<option value="${w}"${t.wave===w?' selected':''}>${w}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function addTowerAt(x,y,wave=1){
+  tid++;
+  towers.push({id:tid,x:parseFloat(x.toFixed(1)),y:parseFloat(y.toFixed(1)),wave});
+  invalidateCache(); renderTowerList(); renderMap();
+}
+
+function addTowerManual(){ addTowerAt(0,73,1); }
+
+function removeTower(id){ towers=towers.filter(t=>t.id!==id); invalidateCache(); renderTowerList(); renderMap(); }
+
+function updateTower(id,field,val){
+  const t=towers.find(t=>t.id===id); if(!t)return;
+  t[field]=field==='wave'?parseInt(val):parseFloat(val)||0;
+  invalidateCache(); renderMap();
+}
+
+// Drag support
+let dragId=null, dragOffX=0, dragOffY=0, didDrag=false;
+
+function canvasCoords(canvas,e){
+  const rect=canvas.getBoundingClientRect();
+  const sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+  return fromCanvas((e.clientX-rect.left)*sx,(e.clientY-rect.top)*sy);
+}
+
+function hitTower(x,y){
+  const HIT_STUDS=6/(SCALE*zoom);
+  for(let i=towers.length-1;i>=0;i--){
+    const t=towers[i];
+    const dx=t.x-x, dy=t.y-y;
+    if(Math.sqrt(dx*dx+dy*dy)<HIT_STUDS) return t;
+  }
+  return null;
+}
+
+const mapCanvas=document.getElementById('mapCanvas');
+
+// --- Scroll to zoom ---
+mapCanvas.addEventListener('wheel',function(e){
+  e.preventDefault();
+  const rect=this.getBoundingClientRect();
+  const sx=this.width/rect.width, sy=this.height/rect.height;
+  // Mouse position in canvas pixels
+  const mx=(e.clientX-rect.left)*sx;
+  const my=(e.clientY-rect.top)*sy;
+  const factor=e.deltaY<0?1.12:1/1.12;
+  const newZoom=Math.min(8,Math.max(0.4,zoom*factor));
+  // Adjust pan so the point under the cursor stays fixed
+  panX=mx-(mx-panX)*(newZoom/zoom);
+  panY=my-(my-panY)*(newZoom/zoom);
+  zoom=newZoom;
+  renderMap();
+},{passive:false});
+
+// --- Middle-mouse or right-click pan ---
+let isPanning=false, panStartX=0, panStartY=0, panOriginX=0, panOriginY=0;
+
+// Suppress context menu on the canvas so right-click can pan
+mapCanvas.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+
+mapCanvas.addEventListener('mousedown',function(e){
+  if(e.button===1 || e.button===2){ // middle mouse or right click
+    isPanning=true;
+    panStartX=e.clientX; panStartY=e.clientY;
+    panOriginX=panX; panOriginY=panY;
+    this.style.cursor='move';
+    e.preventDefault();
+    return;
+  }
+  const{x,y}=canvasCoords(this,e);
+  const hit=hitTower(x,y);
+  if(hit){
+    dragId=hit.id; dragOffX=hit.x-x; dragOffY=hit.y-y; didDrag=false;
+    this.style.cursor='grabbing';
+    e.preventDefault();
+  } else {
+    dragId=null; didDrag=false;
+  }
+});
+
+mapCanvas.addEventListener('mousemove',function(e){
+  if(isPanning){
+    const rect=this.getBoundingClientRect();
+    const sx=this.width/rect.width;
+    const sy=this.height/rect.height;
+    panX=panOriginX+(e.clientX-panStartX)*sx;
+    panY=panOriginY+(e.clientY-panStartY)*sy;
+    renderMap();
+    return;
+  }
+  const{x,y}=canvasCoords(this,e);
+  if(dragId===null){
+    this.style.cursor=hitTower(x,y)?'grab':'crosshair';
+    return;
+  }
+  didDrag=true;
+  const t=towers.find(t=>t.id===dragId); if(!t)return;
+  t.x=parseFloat((x+dragOffX).toFixed(1));
+  t.y=parseFloat((y+dragOffY).toFixed(1));
+  renderMap(); renderTowerList();
+});
+
+mapCanvas.addEventListener('mouseup',function(e){
+  if(e.button===1 || e.button===2){ isPanning=false; this.style.cursor='crosshair'; return; }
+  const wasDragging=dragId!==null && didDrag;
+  const wasOnTower=dragId!==null && !didDrag;
+  dragId=null; didDrag=false;
+  this.style.cursor='crosshair';
+  if(wasDragging || wasOnTower) return;
+  const{x,y}=canvasCoords(this,e);
+  addTowerAt(x,y,1);
+});
+
+mapCanvas.addEventListener('mouseleave',function(){
+  dragId=null; didDrag=false; isPanning=false; this.style.cursor='crosshair';
+});
+
+// Reset zoom button
+document.getElementById('resetZoom').addEventListener('click',()=>{
+  zoom=1; panX=0; panY=0; renderMap();
+});
+
+renderMap();
+</script>
+</body>
+</html>
