@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tower Battles Simulator</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg2: #242424;
+    --bg3: #2e2e2e;
+    --bg4: #383838;
+    --border: #444;
+    --border2: #555;
+    --text: #f0f0f0;
+    --text2: #aaa;
+    --text3: #666;
+    --blue: #4a9eff;
+    --blue-dim: rgba(74,158,255,0.12);
+    --blue-ring: rgba(74,158,255,0.3);
+    --green: #4caf6e;
+    --red: #e05555;
+    --amber: #e09a30;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: 0.01em; }
+  header span { font-size: 12px; color: var(--text3); background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 0; height: calc(100vh - 57px); overflow: hidden; }
+
+  .left-panel { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+  .panel-section { border-bottom: 1px solid var(--border); padding: 14px 16px; }
+  .panel-section:last-child { border-bottom: none; flex: 1; overflow-y: auto; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
+
+  canvas { display: block; border-radius: var(--radius); background: #111; cursor: crosshair; width: 100%; }
+  .map-hint { font-size: 11px; color: var(--text3); margin-top: 8px; line-height: 1.5; }
+
+  .right-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .right-top { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); flex-shrink: 0; max-height: 50vh; overflow: hidden; }
+  .rpanel { padding: 14px 16px; overflow-y: auto; }
+  .rpanel:first-child { border-right: 1px solid var(--border); }
+  .results-panel { flex: 1; overflow-y: auto; padding: 14px 16px; }
+
+  .tower-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; }
+  .tower-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .tower-num { font-size: 13px; font-weight: 600; color: var(--blue); }
+  .tower-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group label { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .field-group input, .field-group select {
+    background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-size: 13px; padding: 6px 10px; width: 100%;
+    outline: none; transition: border-color 0.15s;
+  }
+  .field-group input:focus, .field-group select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-ring); }
+  .field-group select option { background: var(--bg3); }
+
+  .del-btn { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; color: var(--text2); cursor: pointer; font-size: 14px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .del-btn:hover { background: #3a1f1f; border-color: var(--red); color: var(--red); }
+
+  .add-btn { width: 100%; background: transparent; border: 1px dashed var(--border2); border-radius: var(--radius); color: var(--text2); cursor: pointer; font-size: 12px; padding: 8px; margin-top: 4px; transition: all 0.15s; }
+  .add-btn:hover { background: var(--bg3); border-color: var(--blue); color: var(--blue); }
+
+  .sim-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sim-row label { font-size: 12px; color: var(--text2); }
+  .sim-row input { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-size: 13px; padding: 6px 10px; width: 72px; outline: none; }
+  .sim-row input:focus { border-color: var(--blue); }
+
+  .run-btn { background: var(--blue); border: none; border-radius: var(--radius); color: #fff; cursor: pointer; font-size: 13px; font-weight: 600; padding: 8px 20px; transition: all 0.15s; letter-spacing: 0.02em; }
+  .run-btn:hover { background: #5eaaff; }
+  .run-btn:active { transform: scale(0.97); }
+
+  .hero-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .hero-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .hero-sub { font-size: 12px; color: var(--text2); }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .metric { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 700; color: var(--text); }
+
+  .wave-table { width: 100%; border-collapse: collapse; }
+  .wave-table th { font-size: 11px; color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  .wave-table td { padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 12px; color: var(--text); }
+  .wave-table tr:last-child td { border-bottom: none; }
+  .wave-table tr:hover td { background: var(--bg2); }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+  .badge-green { background: rgba(76,175,110,0.15); color: var(--green); border: 1px solid rgba(76,175,110,0.3); }
+  .badge-red { background: rgba(224,85,85,0.15); color: var(--red); border: 1px solid rgba(224,85,85,0.3); }
+  .badge-amber { background: rgba(224,154,48,0.15); color: var(--amber); border: 1px solid rgba(224,154,48,0.3); }
+
+  .sc-tag { font-size: 11px; color: var(--text3); margin-top: 2px; line-height: 1.5; }
+  .wave-num { font-weight: 700; font-size: 13px; }
+  .wave-dur { font-size: 10px; color: var(--text3); }
+
+  .empty-state { color: var(--text3); font-size: 13px; padding: 20px 0; text-align: center; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tower Battles Simulator</h1>
+  <span>Mercenary (Lv1) · 4 DPS · 12.5 stud range · Waves 1–31</span>
+</header>
+
+<div class="layout">
+
+  <div class="left-panel">
+    <div class="panel-section">
+      <div class="section-label">Map — click to place tower</div>
+      <canvas id="mapCanvas" width="288" height="420"></canvas>
+      <div class="map-hint">Click to place a tower. Blue circle = 12.5 stud range (Lv1 Mercenary). Green = spawn, red = base.</div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="right-top">
+      <div class="rpanel">
+        <div class="section-label">Towers</div>
+        <div id="tower-list"><div class="empty-state">Click the map to place towers</div></div>
+        <button class="add-btn" onclick="addTowerManual()">+ Add tower (enter coords)</button>
+      </div>
+      <div class="rpanel">
+        <div class="section-label">Simulation</div>
+        <div class="sim-row">
+          <label>Starting HP</label>
+          <input type="number" id="start-hp" value="100" min="1">
+          <button class="run-btn" onclick="runSim()">&#9654; Simulate</button>
+        </div>
+        <div id="hero-area"></div>
+      </div>
+    </div>
+    <div class="results-panel">
+      <div id="results-area"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCALE = 4.6;
+const MARGIN = 22;
+const RAW_SEGMENTS = [
+  {dx:0,dy:16},{dx:16,dy:0},{dx:0,dy:17},{dx:-16,dy:0},
+  {dx:0,dy:22},{dx:-13,dy:0},{dx:0,dy:11},{dx:13,dy:0},{dx:0,dy:22}
+];
+
+function buildPath() {
+  let x=0,y=0; const pts=[{x,y}];
+  RAW_SEGMENTS.forEach(s=>{x+=s.dx;y+=s.dy;pts.push({x,y});});
+  return pts;
+}
+const PATH_PTS = buildPath();
+const minX=Math.min(...PATH_PTS.map(p=>p.x));
+const minY=Math.min(...PATH_PTS.map(p=>p.y));
+
+function toCanvas(px,py){return{cx:(px-minX)*SCALE+MARGIN,cy:(py-minY)*SCALE+MARGIN};}
+function fromCanvas(cx,cy){return{x:(cx-MARGIN)/SCALE+minX,y:(cy-MARGIN)/SCALE+minY};}
+
+const TOWER_RANGE=12.5, TOWER_DPS=4;
+
+// Exact spawn counts derived from simplified_waves_loc1_only.txt
+const WAVES=[
+  {w:1, dur:7,  scenarios:[{p:1,z:[{t:'normal',n:6}]}]},
+  {w:2, dur:10, scenarios:[{p:1,z:[{t:'normal',n:11}]}]},
+  {w:3, dur:7,  scenarios:[{p:1,z:[{t:'speedy',n:8}]}]},
+  {w:4, dur:15, scenarios:[{p:1,z:[{t:'normal',n:7},{t:'speedy',n:12}]}]},
+  {w:5, dur:9,  scenarios:[{p:1,z:[{t:'slow',n:8}]}]},
+  {w:6, dur:22, scenarios:[{p:1,z:[{t:'normal',n:15},{t:'speedy',n:8}]}]},
+  {w:7, dur:19, scenarios:[{p:1,z:[{t:'speedy',n:8},{t:'normal',n:5},{t:'slow',n:8}]}]},
+  {w:8, dur:17, scenarios:[{p:1,z:[{t:'speedy',n:8},{t:'normal',n:6},{t:'slow',n:5},{t:'boss1',n:1}]}]},
+  {w:9, dur:18, scenarios:[{p:1,z:[{t:'slow',n:20}]}]},
+  {w:10,dur:9,  scenarios:[{p:1,z:[{t:'hidden',n:8}]}]},
+  {w:11,dur:10, scenarios:[{p:1,z:[{t:'slow',n:8},{t:'boss1',n:2}]}]},
+  {w:12,dur:9,  scenarios:[{p:1,z:[{t:'hidden',n:10}]}]},
+  {w:13,dur:11, scenarios:[{p:1,z:[{t:'mystery',n:10}]}]},
+  {w:14,dur:19, scenarios:[{p:1,z:[{t:'slow',n:5},{t:'boss1',n:2},{t:'speedy',n:8},{t:'necro',n:1}]}]},
+  {w:15,dur:20, scenarios:[{p:1,z:[{t:'mystery',n:22}]}]},
+  {w:16,dur:13, scenarios:[{p:1,z:[{t:'slow',n:20}]}]},
+  {w:17,dur:22, scenarios:[{p:1,z:[{t:'mystery',n:1},{t:'speedy',n:2},{t:'hidden',n:2},{t:'normal',n:2},{t:'slow',n:2},{t:'mystery',n:9},{t:'boss1',n:2},{t:'necro',n:1},{t:'boss2',n:1}]}]},
+  {w:18,dur:19, scenarios:[{p:1,z:[{t:'boss1',n:4},{t:'necro',n:1},{t:'mystery',n:5}]}]},
+  {w:19,dur:18, scenarios:[{p:1,z:[{t:'slow',n:4},{t:'lava',n:10},{t:'boss1',n:1}]}]},
+  {w:20,dur:22, scenarios:[{p:1,z:[{t:'mystery',n:15},{t:'hidden',n:4},{t:'boss1',n:2},{t:'lava',n:5}]}]},
+  {w:21,dur:27, scenarios:[{p:1,z:[{t:'hidden',n:6},{t:'lava',n:5},{t:'mystery',n:8},{t:'boss1',n:8},{t:'boss2',n:1}]}]},
+  {w:22,dur:16, scenarios:[{p:1,z:[{t:'hidden',n:5},{t:'boss2',n:1},{t:'hiddenboss',n:1},{t:'lava',n:11}]}]},
+  {w:23,dur:15, scenarios:[{p:1,z:[{t:'toxic',n:8},{t:'boss1',n:2},{t:'boss2',n:1},{t:'mystery',n:4},{t:'hiddenboss',n:2},{t:'necro',n:1}]}]},
+  {w:24,dur:18, scenarios:[{p:1,z:[{t:'boss1',n:4},{t:'hiddenboss',n:1},{t:'lava',n:5},{t:'hiddenboss',n:2},{t:'boss2',n:1}]}]},
+  {w:25,dur:32, scenarios:[{p:1,z:[{t:'lava',n:9},{t:'toxic',n:5},{t:'boss1',n:3},{t:'boss2',n:1},{t:'lightning',n:8},{t:'necro',n:2}]}]},
+  {w:26,dur:10, scenarios:[{p:1,z:[{t:'slime',n:6}]}]},
+  {w:27,dur:26, scenarios:[{p:1,z:[{t:'boss2',n:2},{t:'lightning',n:10},{t:'boss2',n:1},{t:'toxic',n:5},{t:'boss1',n:1},{t:'lightning',n:8}]}]},
+  {w:28,dur:14, scenarios:[{p:1,z:[{t:'slime',n:3},{t:'boss2',n:1},{t:'hiddenboss',n:1},{t:'lightning',n:12},{t:'hiddenboss',n:1},{t:'lightning',n:4},{t:'hiddenboss',n:1},{t:'necro',n:1}]}]},
+  {w:29,dur:45, scenarios:[{p:1,z:[{t:'lightning',n:4},{t:'boss2',n:1},{t:'slime',n:1},{t:'lightning',n:4},{t:'toxic',n:2},{t:'mystery',n:14},{t:'boss2',n:1},{t:'toxic',n:2},{t:'slime',n:4},{t:'mystery2',n:14},{t:'necro',n:3},{t:'hiddenboss',n:2}]}]},
+  {w:30,dur:31, scenarios:[{p:1,z:[{t:'boss2',n:1},{t:'lightning',n:12},{t:'mystery2',n:6},{t:'boss1',n:2},{t:'slime',n:9},{t:'boss1',n:2},{t:'mystery2',n:6}]}]},
+  {w:31,dur:47, scenarios:[{p:1,z:[{t:'normal',n:2},{t:'speedy',n:2},{t:'slow',n:3},{t:'hiddenboss',n:3},{t:'mystery',n:8},{t:'lightning',n:10},{t:'lava',n:2},{t:'boss1',n:3},{t:'necro',n:1},{t:'toxic',n:5},{t:'boss2',n:2},{t:'hiddenboss',n:2},{t:'slime',n:2},{t:'mystery2',n:10},{t:'boss3',n:1}]}]},
+];
+
+const ZTYPES={
+  normal:     {hp:4,   spd:3.2,  label:'Normal'},
+  speedy:     {hp:3,   spd:5.0,  label:'Speedy'},
+  slow:       {hp:16,  spd:1.535,label:'Slow'},
+  boss1:      {hp:180, spd:1.4,  label:'Boss1'},
+  hidden:     {hp:10,  spd:3.2,  label:'Hidden'},
+  mystery:    {hp:10,  spd:3.2,  label:'Mystery'},
+  boss2:      {hp:1600,spd:1.2,  label:'Boss2'},
+  hiddenboss: {hp:800, spd:1.4,  label:'Hidden Boss'},
+  boss3:      {hp:3000,spd:1.0,  label:'Boss3'},
+  slime:      {hp:560, spd:1.2,  label:'Slime'},
+  necro:      {hp:200, spd:1.4,  label:'Necromancer'},
+  lava:       {hp:120, spd:2.0,  label:'Lava'},
+  toxic:      {hp:250, spd:2.0,  label:'Toxic'},
+  mystery2:   {hp:100, spd:3.2,  label:'Mystery2'},
+  lightning:  {hp:50,  spd:6.0,  label:'Lightning'},
+};
+
+let towers=[],tid=0;
+
+function segCircleOverlap(s,e,cx,cy,r){
+  const dx=e.x-s.x,dy=e.y-s.y,len=Math.sqrt(dx*dx+dy*dy);
+  if(len===0)return 0;
+  const ux=dx/len,uy=dy/len,fx=s.x-cx,fy=s.y-cy;
+  const b=2*(fx*ux+fy*uy),c=fx*fx+fy*fy-r*r,disc=b*b-4*c;
+  if(disc<0)return 0;
+  const sq=Math.sqrt(disc),t1=(-b-sq)/2,t2=(-b+sq)/2;
+  const lo=Math.max(0,t1),hi=Math.min(len,t2);
+  return hi>lo?hi-lo:0;
+}
+
+// Precompute cumulative path distances for fast position lookup
+const PATH_DISTS=(()=>{
+  const d=[0];
+  for(let i=1;i<PATH_PTS.length;i++){
+    const dx=PATH_PTS[i].x-PATH_PTS[i-1].x,dy=PATH_PTS[i].y-PATH_PTS[i-1].y;
+    d.push(d[i-1]+Math.sqrt(dx*dx+dy*dy));
+  }
+  return d;
+})();
+const TOTAL_PATH=PATH_DISTS[PATH_DISTS.length-1];
+
+// Get world position of a zombie that has traveled `dist` studs along the path
+function posAlongPath(dist){
+  if(dist<=0)return{...PATH_PTS[0]};
+  if(dist>=TOTAL_PATH)return{...PATH_PTS[PATH_PTS.length-1]};
+  for(let i=1;i<PATH_DISTS.length;i++){
+    if(PATH_DISTS[i]>=dist){
+      const seg=PATH_DISTS[i]-PATH_DISTS[i-1];
+      const t=(dist-PATH_DISTS[i-1])/seg;
+      return{x:PATH_PTS[i-1].x+t*(PATH_PTS[i].x-PATH_PTS[i-1].x),
+             y:PATH_PTS[i-1].y+t*(PATH_PTS[i].y-PATH_PTS[i-1].y)};
+    }
+  }
+  return{...PATH_PTS[PATH_PTS.length-1]};
+}
+
+// Check if a zombie at path distance `dist` is within tower range
+function inRange(tx,ty,dist){
+  const p=posAlongPath(dist);
+  const dx=p.x-tx,dy=p.y-ty;
+  return dx*dx+dy*dy<=TOWER_RANGE*TOWER_RANGE;
+}
+
+// Simulate a wave with proper concurrent zombie tracking.
+// Groups: [{t, n}] — zombie types in spawn order (mixed across groups by interleaving)
+// waveDur: total wave duration in seconds
+// towerList: all towers placed
+// waveNum: current wave number
+// Returns: total damage that reaches the base (sum of remaining HP of zombies that exit)
+function simWave(groups, waveDur, towerList, waveNum){
+  const active=towerList.filter(t=>t.wave<=waveNum);
+
+  // Flatten all zombies in spawn order: interleave groups proportionally by count
+  const allZombies=[];
+  groups.forEach(g=>{
+    for(let i=0;i<g.n;i++) allZombies.push({type:g.t,hp:ZTYPES[g.t].hp,spd:ZTYPES[g.t].spd});
+  });
+  const N=allZombies.length;
+  if(N===0)return 0;
+
+  // Spawn interval: spread zombies evenly over waveDur
+  const spawnInterval = waveDur / N;
+
+  // Each zombie state: spawnTime, distTraveled, currentHp, exited
+  const zombies = allZombies.map((z,i)=>({
+    ...z,
+    spawnTime: i * spawnInterval,
+    dist: 0,         // distance traveled along path at current sim time
+    hp: z.hp,
+    exited: false,
+    reached: false,  // has it reached the base?
+  }));
+
+  // Time-step simulation
+  const DT = 0.05; // seconds per tick
+  const simEnd = waveDur + TOTAL_PATH / 0.5 + 10; // enough time for slowest zombie to exit
+
+  // Per-tower: track which zombie it's currently targeting (index), null if none
+  // Tower fires at the FIRST (furthest along path = highest dist) zombie in range
+  const towerTargets = active.map(()=>null);
+
+  for(let t=0; t<simEnd; t+=DT){
+    // Advance all alive, spawned zombies
+    zombies.forEach(z=>{
+      if(z.exited || z.reached) return;
+      if(t < z.spawnTime) return;
+      z.dist += z.spd * DT;
+      if(z.dist >= TOTAL_PATH){ z.reached=true; }
+    });
+
+    // Each tower picks the frontmost zombie in range and shoots it
+    active.forEach((tower,ti)=>{
+      // Find frontmost (highest dist) zombie in range that is alive & spawned & not yet exited/reached
+      let bestIdx=-1, bestDist=-1;
+      zombies.forEach((z,zi)=>{
+        if(z.reached || z.exited || t < z.spawnTime || z.hp<=0) return;
+        if(inRange(tower.x, tower.y, z.dist)){
+          if(z.dist > bestDist){ bestDist=z.dist; bestIdx=zi; }
+        }
+      });
+      if(bestIdx===-1) return;
+      const target=zombies[bestIdx];
+      target.hp -= TOWER_DPS * DT;
+      if(target.hp<=0){ target.hp=0; target.exited=true; } // killed before base
+    });
+  }
+
+  // Damage = sum of remaining HP of zombies that reached the base
+  let totalDmg=0;
+  zombies.forEach(z=>{
+    if(z.reached) totalDmg += Math.max(0, z.hp);
+  });
+  return totalDmg;
+}
+
+function runSim(){
+  const startHp=parseFloat(document.getElementById('start-hp').value)||100;
+  if(!towers.length){
+    document.getElementById('hero-area').innerHTML='<div class="empty-state">Place at least one tower first.</div>';
+    document.getElementById('results-area').innerHTML='';
+    return;
+  }
+  let hp=startHp,survProb=1,diedWave=null;
+  const rows=[];
+
+  WAVES.forEach(wave=>{
+    const scenRes=wave.scenarios.map(sc=>{
+      const dmg=simWave(sc.z, wave.dur, towers, wave.w);
+      return{p:sc.p,dmg,dies:dmg>=hp,z:sc.z};
+    });
+    const pDie=scenRes.reduce((s,r)=>s+(r.dies?r.p:0),0);
+    const avgDmg=scenRes.reduce((s,r)=>s+r.p*r.dmg,0);
+    const minDmg=Math.min(...scenRes.map(r=>r.dmg));
+    const maxDmg=Math.max(...scenRes.map(r=>r.dmg));
+    const probDieHere=!diedWave?survProb*pDie:0;
+    rows.push({wave:wave.w,dur:wave.dur,scenRes,pDie,probDieHere,avgDmg,minDmg,maxDmg,hpBefore:hp,hpAfter:Math.max(0,hp-avgDmg),multi:wave.scenarios.length>1});
+    if(!diedWave){ survProb*=(1-pDie); if(pDie>=1)diedWave=wave.w; else hp=Math.max(0,hp-avgDmg); }
+  });
+
+  const pSurv=survProb;
+  let heroColor,heroTitle,heroSub;
+  if(diedWave){heroColor='var(--red)';heroTitle=`Eliminated on wave ${diedWave}`;heroSub='Towers cannot stop the incoming damage';}
+  else if(pSurv<.999){heroColor='var(--amber)';heroTitle=`${(pSurv*100).toFixed(1)}% chance to survive`;heroSub='Some scenarios are lethal';}
+  else{heroColor='var(--green)';heroTitle='Survives all 31 waves';heroSub='All scenarios cleared including Boss3 on W31';}
+
+  document.getElementById('hero-area').innerHTML=`
+    <div class="hero-card" style="border-color:${heroColor}22">
+      <div class="hero-title" style="color:${heroColor}">${heroTitle}</div>
+      <div class="hero-sub">${heroSub}</div>
+    </div>`;
+
+  const dataRows=rows.map(r=>{
+    let badge,bc;
+    if(r.pDie>=1){badge='certain death';bc='badge-red';}
+    else if(r.pDie>0){badge=`${(r.pDie*100).toFixed(0)}% die`;bc='badge-amber';}
+    else{badge='safe';bc='badge-green';}
+    const dmgStr=r.minDmg===r.maxDmg?r.minDmg.toFixed(1):`${r.minDmg.toFixed(1)}–${r.maxDmg.toFixed(1)}`;
+    const scDesc=r.multi
+      ?r.scenRes.map(s=>`<div class="sc-tag">${(s.p*100).toFixed(0)}%: ${s.z.map(g=>`${g.n} ${ZTYPES[g.t].label}`).join('+')} → ${s.dmg.toFixed(1)} dmg${s.dies?' ☠':''}</div>`).join('')
+      :`<div class="sc-tag">${r.scenRes[0].z.map(g=>`${g.n} ${ZTYPES[g.t].label}`).join(', ')} → ${r.scenRes[0].dmg.toFixed(1)} dmg</div>`;
+    return `<tr>
+      <td><span class="wave-num">W${r.wave}</span><br><span class="wave-dur">${r.dur}s</span></td>
+      <td>${scDesc}</td>
+      <td style="color:var(--text2)">${dmgStr}<br><span style="color:var(--text3)">${r.hpBefore.toFixed(0)} → ${r.hpAfter.toFixed(0)}</span></td>
+      <td style="color:var(--text2)">${r.probDieHere>0?(r.probDieHere*100).toFixed(1)+'%':'—'}</td>
+      <td><span class="badge ${bc}">${badge}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('results-area').innerHTML=`
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">Towers placed</div><div class="metric-val">${towers.length}</div></div>
+      <div class="metric"><div class="metric-label">Survive chance</div><div class="metric-val" style="color:${heroColor}">${(pSurv*100).toFixed(1)}%</div></div>
+      <div class="metric"><div class="metric-label">HP after W31</div><div class="metric-val">${Math.max(0,hp).toFixed(0)}</div></div>
+    </div>
+    <table class="wave-table">
+      <thead><tr><th>Wave</th><th>Spawns</th><th>Dmg / HP</th><th>Die here</th><th>Status</th></tr></thead>
+      <tbody>${dataRows}</tbody>
+    </table>`;
+}
+
+function renderMap(){
+  const canvas=document.getElementById('mapCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle='#3a3a3a'; ctx.lineWidth=12; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.beginPath();
+  PATH_PTS.forEach((p,i)=>{const{cx,cy}=toCanvas(p.x,p.y);i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);});
+  ctx.stroke();
+
+  ctx.strokeStyle='#555'; ctx.lineWidth=2; ctx.setLineDash([5,5]);
+  ctx.beginPath();
+  PATH_PTS.forEach((p,i)=>{const{cx,cy}=toCanvas(p.x,p.y);i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy);});
+  ctx.stroke(); ctx.setLineDash([]);
+
+  const s=toCanvas(PATH_PTS[0].x,PATH_PTS[0].y);
+  const e=toCanvas(PATH_PTS[PATH_PTS.length-1].x,PATH_PTS[PATH_PTS.length-1].y);
+  ctx.fillStyle='#4caf6e'; ctx.beginPath(); ctx.arc(s.cx,s.cy,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#e05555'; ctx.beginPath(); ctx.arc(e.cx,e.cy,5,0,Math.PI*2); ctx.fill();
+
+  towers.forEach(t=>{
+    const{cx,cy}=toCanvas(t.x,t.y);
+    const rc=TOWER_RANGE*SCALE;
+    ctx.strokeStyle='rgba(74,158,255,0.35)'; ctx.fillStyle='rgba(74,158,255,0.08)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(cx,cy,rc,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#4a9eff';
+    ctx.beginPath(); ctx.arc(cx,cy,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('W'+t.wave,cx,cy-9);
+  });
+}
+
+function renderTowerList(){
+  const el=document.getElementById('tower-list');
+  if(!towers.length){el.innerHTML='<div class="empty-state">Click the map to place towers</div>';return;}
+  el.innerHTML=towers.map(t=>`
+    <div class="tower-card">
+      <div class="tower-card-header">
+        <span class="tower-num">#${t.id} Mercenary</span>
+        <button class="del-btn" onclick="removeTower(${t.id})" aria-label="Remove tower">×</button>
+      </div>
+      <div class="tower-fields">
+        <div class="field-group"><label>X (studs)</label><input type="number" step="0.5" value="${t.x.toFixed(1)}" oninput="updateTower(${t.id},'x',this.value)"></div>
+        <div class="field-group"><label>Y (studs)</label><input type="number" step="0.5" value="${t.y.toFixed(1)}" oninput="updateTower(${t.id},'y',this.value)"></div>
+        <div class="field-group" style="grid-column:span 2"><label>Place on wave</label>
+          <select onchange="updateTower(${t.id},'wave',this.value)">
+            ${Array.from({length:31},(_,i)=>i+1).map(w=>`<option value="${w}"${t.wave===w?' selected':''}>${w}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function addTowerAt(x,y,wave=1){
+  tid++;
+  towers.push({id:tid,x:parseFloat(x.toFixed(1)),y:parseFloat(y.toFixed(1)),wave});
+  renderTowerList(); renderMap();
+}
+
+function addTowerManual(){ addTowerAt(0,73,1); }
+
+function removeTower(id){ towers=towers.filter(t=>t.id!==id); renderTowerList(); renderMap(); }
+
+function updateTower(id,field,val){
+  const t=towers.find(t=>t.id===id); if(!t)return;
+  t[field]=field==='wave'?parseInt(val):parseFloat(val)||0;
+  renderMap();
+}
+
+// Drag support
+let dragId=null, dragOffX=0, dragOffY=0, didDrag=false;
+
+function canvasCoords(canvas,e){
+  const rect=canvas.getBoundingClientRect();
+  const sx=canvas.width/rect.width, sy=canvas.height/rect.height;
+  return fromCanvas((e.clientX-rect.left)*sx,(e.clientY-rect.top)*sy);
+}
+
+function hitTower(x,y){
+  const HIT_STUDS=6/SCALE;
+  for(let i=towers.length-1;i>=0;i--){
+    const t=towers[i];
+    const dx=t.x-x, dy=t.y-y;
+    if(Math.sqrt(dx*dx+dy*dy)<HIT_STUDS) return t;
+  }
+  return null;
+}
+
+const mapCanvas=document.getElementById('mapCanvas');
+
+mapCanvas.addEventListener('mousedown',function(e){
+  const{x,y}=canvasCoords(this,e);
+  const hit=hitTower(x,y);
+  if(hit){
+    dragId=hit.id; dragOffX=hit.x-x; dragOffY=hit.y-y; didDrag=false;
+    this.style.cursor='grabbing';
+    e.preventDefault();
+  } else {
+    dragId=null; didDrag=false;
+  }
+});
+
+mapCanvas.addEventListener('mousemove',function(e){
+  const{x,y}=canvasCoords(this,e);
+  if(dragId===null){
+    this.style.cursor=hitTower(x,y)?'grab':'crosshair';
+    return;
+  }
+  didDrag=true;
+  const t=towers.find(t=>t.id===dragId); if(!t)return;
+  t.x=parseFloat((x+dragOffX).toFixed(1));
+  t.y=parseFloat((y+dragOffY).toFixed(1));
+  renderMap(); renderTowerList();
+});
+
+mapCanvas.addEventListener('mouseup',function(e){
+  const wasDragging=dragId!==null && didDrag;
+  const wasOnTower=dragId!==null && !didDrag;
+  dragId=null; didDrag=false;
+  this.style.cursor='crosshair';
+  if(wasDragging || wasOnTower) return; // don't place tower
+  const{x,y}=canvasCoords(this,e);
+  addTowerAt(x,y,1);
+});
+
+mapCanvas.addEventListener('mouseleave',function(){
+  dragId=null; didDrag=false; this.style.cursor='crosshair';
+});
+
+renderMap();
+</script>
+</body>
+</html>
